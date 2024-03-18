@@ -3299,7 +3299,8 @@ function Start-VMX
         [Parameter(ParameterSetName = "3", Mandatory = $true, ValueFromPipelineByPropertyName = $True)]$config,
         [Parameter(Mandatory=$false)]$Path,
         [Parameter(Mandatory=$false)][Switch]$nowait,
-        [Parameter(Mandatory=$false)][Switch]$nogui
+        [Parameter(Mandatory=$false)][Switch]$nogui,
+		[Parameter(Mandatory=$false)][Switch]$noVersionCheck
 	)
 	begin
 	{
@@ -3342,7 +3343,7 @@ function Start-VMX
 		if (($vmx) -and ($vmx.state -ne "running"))
 		{
             [int]$vmxhwversion = (Get-VMXHWVersion -config $vmx.config).hwversion
-            if ($vmxHWversion -le $vmwareversion.major)
+            if (($vmxHWversion -le $vmwareversion.major) -or $noVersionCheck)
             {
                 Write-Verbose "Checking State for $vmxname : $($vmx.vmxname)  : $($vmx.state)"
                 Write-Verbose "creating Backup of $($vmx.config)"
@@ -4810,7 +4811,8 @@ function Invoke-VMXBash
         [Parameter(ParameterSetName = 1, Mandatory = $true, ValueFromPipelineByPropertyName = $true)][Alias('gu')]$Guestuser, 
         [Parameter(ParameterSetName = 1, Mandatory = $false, ValueFromPipelineByPropertyName = $true)][Alias('gp')]$Guestpassword,
         [Parameter(ParameterSetName = 1, Mandatory = $false, ValueFromPipelineByPropertyName = $false)][Alias('pe')]$Possible_Error_Fix,
-        [Parameter(ParameterSetName = 1, Mandatory = $false, ValueFromPipelineByPropertyName = $true)][Alias('log')]$logfile
+        [Parameter(ParameterSetName = 1, Mandatory = $false, ValueFromPipelineByPropertyName = $true)][Alias('log')]$logfile,
+		[Parameter(ParameterSetName = 1, Mandatory = $false, ValueFromPipelineByPropertyName = $true)][switch]$NoPromptOnError
 
 	)
 	begin
@@ -4854,7 +4856,10 @@ do
 				Write-Host -ForegroundColor Yellow $Possible_Error_Fix
 				}
             Write-Verbose "Confirmpreference: $ConfirmPreference"
-            if ($ConfirmPreference -notmatch "none")
+			if ($NoPromptOnError ) {
+				Write-Host -ForegroundColor Red "[failed]"
+			}
+            elseif ($ConfirmPreference -notmatch "none")
                 {
                 $Myresult = Get-yesnoabort -title "Scriptfailure for $Scriptblock" -message "May be VPN Issue, retry ?"
                 Write-Verbose "Question response: $Myresult"
@@ -4864,6 +4869,7 @@ do
                     exit
                     }
                 }
+
             else 
                 {
                 $Myresult = 0
